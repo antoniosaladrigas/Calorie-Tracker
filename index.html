@@ -21,15 +21,18 @@
             position: fixed; top: 0; right: -100%; width: 250px; height: 100%; 
             background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.1); 
             transition: 0.3s; padding: 60px 20px; z-index: 99;
+            overflow-y: auto;
         }
         .side-menu.open { right: 0; }
         
-        /* Meal Buttons */
-        .meal-item { 
+        /* Meal Buttons & History */
+        .meal-item, .history-item { 
             display: flex; justify-content: space-between; align-items: center;
             padding: 15px; border-bottom: 1px solid #eee; cursor: pointer;
         }
         .meal-item:active { background: #f9f9f9; }
+        .history-item { cursor: default; font-size: 0.9rem; color: #555; }
+        h3, h4 { margin-top: 20px; margin-bottom: 10px; color: #333; }
     </style>
 </head>
 <body>
@@ -37,12 +40,16 @@
     <div class="menu-icon" onclick="toggleMenu()">☰</div>
 
     <div id="sideMenu" class="side-menu">
-        <h3>Quick Add Meals</h3>
+        <h3>Quick Add</h3>
         <div class="meal-item" onclick="addMeal(200)"><span>Protein Shake</span> <b>200</b></div>
         <div class="meal-item" onclick="addMeal(500)"><span>Large Meal</span> <b>500</b></div>
         <div class="meal-item" onclick="addMeal(150)"><span>Snack</span> <b>150</b></div>
-        <hr>
-        <button onclick="manualReset()" style="color:red; background:none; border:none; padding:10px;">Clear Today</button>
+        
+        <h4>Previous Days</h4>
+        <div id="historyList"></div>
+
+        <hr style="margin-top: 20px; border: 0; border-top: 1px solid #eee;">
+        <button onclick="manualReset()" style="color:red; background:none; border:none; padding:10px; width: 100%; text-align: left;">Clear Today</button>
     </div>
 
     <div class="container">
@@ -56,39 +63,65 @@
         const totalDisplay = document.getElementById('total');
         const inputField = document.getElementById('input');
         const sideMenu = document.getElementById('sideMenu');
+        const historyList = document.getElementById('historyList');
+
+        // Use the date as a unique key (e.g., "1/15/2026")
+        const todayKey = new Date().toLocaleDateString();
 
         function toggleMenu() { sideMenu.classList.toggle('open'); }
 
-        function init() {
-            const savedDate = localStorage.getItem('lastDate');
-            if (savedDate !== new Date().toLocaleDateString()) {
-                localStorage.setItem('dailyCals', 0);
-                localStorage.setItem('lastDate', new Date().toLocaleDateString());
-            }
-            render();
-        }
-
         function render() {
-            totalDisplay.innerText = localStorage.getItem('dailyCals') || 0;
+            // Load history or create empty object if first time
+            const history = JSON.parse(localStorage.getItem('calHistory')) || {};
+            
+            // Show today's total
+            totalDisplay.innerText = history[todayKey] || 0;
+
+            // Clear and rebuild the history list in the menu
+            historyList.innerHTML = "";
+            const dates = Object.keys(history).sort().reverse(); // Show newest first
+            
+            dates.forEach(date => {
+                if (date !== todayKey) {
+                    const item = document.createElement('div');
+                    item.className = 'history-item';
+                    item.innerHTML = `<span>${date}</span> <b>${history[date]}</b>`;
+                    historyList.appendChild(item);
+                }
+            });
         }
 
         function addMeal(amount) {
-            let current = parseInt(localStorage.getItem('dailyCals')) || 0;
-            localStorage.setItem('dailyCals', current + amount);
+            let history = JSON.parse(localStorage.getItem('calHistory')) || {};
+            
+            // Add calories to the specific key for today
+            history[todayKey] = (history[todayKey] || 0) + amount;
+            
+            localStorage.setItem('calHistory', JSON.stringify(history));
             render();
-            toggleMenu(); // Close menu after adding
+            if (sideMenu.classList.contains('open')) toggleMenu();
         }
 
         function addFromInput() {
-            addMeal(parseInt(inputField.value) || 0);
-            inputField.value = '';
+            const val = parseInt(inputField.value);
+            if (val) {
+                addMeal(val);
+                inputField.value = '';
+            }
         }
 
         function manualReset() {
-            if(confirm("Reset?")) { localStorage.setItem('dailyCals', 0); render(); toggleMenu(); }
+            if(confirm("Reset today's calories?")) {
+                let history = JSON.parse(localStorage.getItem('calHistory')) || {};
+                history[todayKey] = 0;
+                localStorage.setItem('calHistory', JSON.stringify(history));
+                render();
+                toggleMenu();
+            }
         }
 
-        init();
+        // Initialize on load
+        render();
     </script>
 </body>
 </html>
