@@ -3,65 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Cals</title>
-    
+    <title>Cals Pro</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
     <style>
-        :root {
-            --ios-blue: #007AFF;
-            --ios-bg: #f2f2f7;
+        :root { --ios-blue: #007AFF; --ios-bg: #f2f2f7; }
+        body { font-family: -apple-system, system-ui; background: var(--ios-bg); margin: 0; overflow: hidden; }
+        
+        /* Main Screen */
+        .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        #total { font-size: 5rem; font-weight: 800; color: var(--ios-blue); margin: 10px 0; }
+        input { width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 1.2rem; }
+        .add-btn { width: 80%; padding: 15px; background: var(--ios-blue); color: white; border-radius: 12px; border: none; font-weight: bold; }
+
+        /* Hamburger Menu */
+        .menu-icon { position: absolute; top: 50px; right: 20px; font-size: 1.5rem; cursor: pointer; z-index: 100; }
+        .side-menu { 
+            position: fixed; top: 0; right: -100%; width: 250px; height: 100%; 
+            background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.1); 
+            transition: 0.3s; padding: 60px 20px; z-index: 99;
         }
-        body { 
-            font-family: -apple-system, system-ui, sans-serif; 
-            background-color: var(--ios-bg); 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            height: 100vh; margin: 0; 
+        .side-menu.open { right: 0; }
+        
+        /* Meal Buttons */
+        .meal-item { 
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px; border-bottom: 1px solid #eee; cursor: pointer;
         }
-        .card {
-            background: white; padding: 30px; border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 85%; max-width: 350px; text-align: center;
-        }
-        .label { color: #8e8e93; font-weight: 600; font-size: 0.8rem; letter-spacing: 0.5px; }
-        #total { font-size: 4.5rem; font-weight: 800; color: var(--ios-blue); margin: 10px 0; }
-        input {
-            width: 100%; padding: 15px; font-size: 1.2rem; border: 1px solid #ddd;
-            border-radius: 12px; margin-bottom: 15px; box-sizing: border-box;
-            background: #f9f9f9; -webkit-appearance: none;
-        }
-        button {
-            width: 100%; padding: 16px; font-size: 1.1rem; font-weight: 600;
-            border-radius: 12px; border: none; background: var(--ios-blue); color: white;
-            transition: transform 0.1s;
-        }
-        button:active { transform: scale(0.98); opacity: 0.9; }
-        .reset-link { margin-top: 25px; color: #ff3b30; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+        .meal-item:active { background: #f9f9f9; }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <div class="label">CALORIES TODAY</div>
+    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+
+    <div id="sideMenu" class="side-menu">
+        <h3>Quick Add Meals</h3>
+        <div class="meal-item" onclick="addMeal(200)"><span>Protein Shake</span> <b>200</b></div>
+        <div class="meal-item" onclick="addMeal(500)"><span>Large Meal</span> <b>500</b></div>
+        <div class="meal-item" onclick="addMeal(150)"><span>Snack</span> <b>150</b></div>
+        <hr>
+        <button onclick="manualReset()" style="color:red; background:none; border:none; padding:10px;">Clear Today</button>
+    </div>
+
+    <div class="container">
+        <div style="color: #8e8e93; font-weight: 600;">TODAY</div>
         <div id="total">0</div>
-        
-        <input type="number" id="input" placeholder="Enter amount" inputmode="numeric">
-        <button onclick="addCals()">Add Calories</button>
-        <div class="reset-link" onclick="manualReset()">Reset Today</div>
+        <input type="number" id="input" placeholder="0" inputmode="numeric">
+        <button class="add-btn" onclick="addFromInput()">Add Calories</button>
     </div>
 
     <script>
         const totalDisplay = document.getElementById('total');
         const inputField = document.getElementById('input');
+        const sideMenu = document.getElementById('sideMenu');
+
+        function toggleMenu() { sideMenu.classList.toggle('open'); }
 
         function init() {
             const savedDate = localStorage.getItem('lastDate');
-            const today = new Date().toLocaleDateString();
-
-            // Auto-reset if it's a new day
-            if (savedDate !== today) {
+            if (savedDate !== new Date().toLocaleDateString()) {
                 localStorage.setItem('dailyCals', 0);
-                localStorage.setItem('lastDate', today);
+                localStorage.setItem('lastDate', new Date().toLocaleDateString());
             }
             render();
         }
@@ -70,22 +72,20 @@
             totalDisplay.innerText = localStorage.getItem('dailyCals') || 0;
         }
 
-        function addCals() {
+        function addMeal(amount) {
             let current = parseInt(localStorage.getItem('dailyCals')) || 0;
-            let val = parseInt(inputField.value) || 0;
-            
-            if (val > 0) {
-                localStorage.setItem('dailyCals', current + val);
-                inputField.value = '';
-                render();
-            }
+            localStorage.setItem('dailyCals', current + amount);
+            render();
+            toggleMenu(); // Close menu after adding
+        }
+
+        function addFromInput() {
+            addMeal(parseInt(inputField.value) || 0);
+            inputField.value = '';
         }
 
         function manualReset() {
-            if(confirm("Are you sure you want to clear today's count?")) {
-                localStorage.setItem('dailyCals', 0);
-                render();
-            }
+            if(confirm("Reset?")) { localStorage.setItem('dailyCals', 0); render(); toggleMenu(); }
         }
 
         init();
