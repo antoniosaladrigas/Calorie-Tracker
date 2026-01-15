@@ -6,33 +6,36 @@
     <title>Cals Pro</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <style>
-        :root { --ios-blue: #007AFF; --ios-bg: #f2f2f7; }
+        :root { --ios-blue: #007AFF; --ios-bg: #f2f2f7; --ios-red: #FF3B30; }
         body { font-family: -apple-system, system-ui; background: var(--ios-bg); margin: 0; overflow: hidden; }
         
-        /* Main Screen */
         .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; }
         #total { font-size: 5rem; font-weight: 800; color: var(--ios-blue); margin: 10px 0; }
-        input { width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 1.2rem; }
+        input { width: 80%; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 10px; font-size: 1rem; }
         .add-btn { width: 80%; padding: 15px; background: var(--ios-blue); color: white; border-radius: 12px; border: none; font-weight: bold; }
 
-        /* Hamburger Menu */
+        /* Side Menu */
         .menu-icon { position: absolute; top: 50px; right: 20px; font-size: 1.5rem; cursor: pointer; z-index: 100; }
         .side-menu { 
-            position: fixed; top: 0; right: -100%; width: 250px; height: 100%; 
+            position: fixed; top: 0; right: -100%; width: 280px; height: 100%; 
             background: white; box-shadow: -5px 0 15px rgba(0,0,0,0.1); 
-            transition: 0.3s; padding: 60px 20px; z-index: 99;
-            overflow-y: auto;
+            transition: 0.3s; padding: 60px 20px; z-index: 99; overflow-y: auto;
         }
         .side-menu.open { right: 0; }
         
-        /* Meal Buttons & History */
+        /* Quick Add & Custom Meals */
         .meal-item, .history-item { 
             display: flex; justify-content: space-between; align-items: center;
-            padding: 15px; border-bottom: 1px solid #eee; cursor: pointer;
+            padding: 12px 0; border-bottom: 1px solid #eee; cursor: pointer;
         }
-        .meal-item:active { background: #f9f9f9; }
-        .history-item { cursor: default; font-size: 0.9rem; color: #555; }
-        h3, h4 { margin-top: 20px; margin-bottom: 10px; color: #333; }
+        .delete-meal { color: var(--ios-red); font-weight: bold; padding-left: 10px; display: none; }
+        .editing .delete-meal { display: inline; }
+        
+        .custom-meal-form { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+        .custom-meal-form input { width: 90%; padding: 8px; margin-bottom: 5px; font-size: 0.9rem; }
+        
+        h3, h4 { margin: 20px 0 10px; color: #333; }
+        .small-btn { background: none; border: none; color: var(--ios-blue); font-size: 0.9rem; cursor: pointer; padding: 0; }
     </style>
 </head>
 <body>
@@ -40,16 +43,23 @@
     <div class="menu-icon" onclick="toggleMenu()">☰</div>
 
     <div id="sideMenu" class="side-menu">
-        <h3>Quick Add</h3>
-        <div class="meal-item" onclick="addMeal(200)"><span>Protein Shake</span> <b>200</b></div>
-        <div class="meal-item" onclick="addMeal(500)"><span>Large Meal</span> <b>500</b></div>
-        <div class="meal-item" onclick="addMeal(150)"><span>Snack</span> <b>150</b></div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Quick Add</h3>
+            <button class="small-btn" onclick="toggleEditMeals()" id="editBtn">Edit</button>
+        </div>
+
+        <div class="custom-meal-form">
+            <input type="text" id="newMealName" placeholder="Meal Name (e.g. Eggs)">
+            <input type="number" id="newMealCals" placeholder="Calories">
+            <button class="add-btn" style="padding: 8px; font-size: 0.9rem;" onclick="saveNewMeal()">Add to List</button>
+        </div>
+
+        <div id="mealList"></div>
         
         <h4>Previous Days</h4>
         <div id="historyList"></div>
 
-        <hr style="margin-top: 20px; border: 0; border-top: 1px solid #eee;">
-        <button onclick="manualReset()" style="color:red; background:none; border:none; padding:10px; width: 100%; text-align: left;">Clear Today</button>
+        <button onclick="manualReset()" style="color:red; background:none; border:none; padding:20px 0; width: 100%; text-align: left;">Clear Today</button>
     </div>
 
     <div class="container">
@@ -61,57 +71,86 @@
 
     <script>
         const totalDisplay = document.getElementById('total');
-        const inputField = document.getElementById('input');
         const sideMenu = document.getElementById('sideMenu');
-        const historyList = document.getElementById('historyList');
-
-        // Use the date as a unique key (e.g., "1/15/2026")
+        const mealList = document.getElementById('mealList');
         const todayKey = new Date().toLocaleDateString();
 
+        // Default meals if none exist
+        const defaultMeals = [
+            { name: "Protein Shake", cals: 200 },
+            { name: "Snack", cals: 150 }
+        ];
+
         function toggleMenu() { sideMenu.classList.toggle('open'); }
+        function toggleEditMeals() { 
+            mealList.classList.toggle('editing');
+            document.getElementById('editBtn').innerText = mealList.classList.contains('editing') ? "Done" : "Edit";
+        }
 
         function render() {
-            // Load history or create empty object if first time
             const history = JSON.parse(localStorage.getItem('calHistory')) || {};
+            const customMeals = JSON.parse(localStorage.getItem('customMeals')) || defaultMeals;
             
-            // Show today's total
             totalDisplay.innerText = history[todayKey] || 0;
 
-            // Clear and rebuild the history list in the menu
+            // Render Meal List
+            mealList.innerHTML = "";
+            customMeals.forEach((meal, index) => {
+                const div = document.createElement('div');
+                div.className = 'meal-item';
+                div.onclick = () => { if(!mealList.classList.contains('editing')) addMeal(meal.cals); };
+                div.innerHTML = `
+                    <span>${meal.name} <b>${meal.cals}</b></span>
+                    <span class="delete-meal" onclick="deleteMeal(${index}); event.stopPropagation();">✕</span>
+                `;
+                mealList.appendChild(div);
+            });
+
+            // Render History
+            const historyList = document.getElementById('historyList');
             historyList.innerHTML = "";
-            const dates = Object.keys(history).sort().reverse(); // Show newest first
-            
-            dates.forEach(date => {
+            Object.keys(history).sort().reverse().forEach(date => {
                 if (date !== todayKey) {
-                    const item = document.createElement('div');
-                    item.className = 'history-item';
-                    item.innerHTML = `<span>${date}</span> <b>${history[date]}</b>`;
-                    historyList.appendChild(item);
+                    historyList.innerHTML += `<div class="history-item"><span>${date}</span> <b>${history[date]}</b></div>`;
                 }
             });
         }
 
-        function addMeal(amount) {
-            let history = JSON.parse(localStorage.getItem('calHistory')) || {};
-            
-            // Add calories to the specific key for today
-            history[todayKey] = (history[todayKey] || 0) + amount;
-            
-            localStorage.setItem('calHistory', JSON.stringify(history));
-            render();
-            if (sideMenu.classList.contains('open')) toggleMenu();
-        }
-
-        function addFromInput() {
-            const val = parseInt(inputField.value);
-            if (val) {
-                addMeal(val);
-                inputField.value = '';
+        function saveNewMeal() {
+            const name = document.getElementById('newMealName').value;
+            const cals = parseInt(document.getElementById('newMealCals').value);
+            if (name && cals) {
+                const customMeals = JSON.parse(localStorage.getItem('customMeals')) || defaultMeals;
+                customMeals.push({ name, cals });
+                localStorage.setItem('customMeals', JSON.stringify(customMeals));
+                document.getElementById('newMealName').value = '';
+                document.getElementById('newMealCals').value = '';
+                render();
             }
         }
 
+        function deleteMeal(index) {
+            const customMeals = JSON.parse(localStorage.getItem('customMeals')) || defaultMeals;
+            customMeals.splice(index, 1);
+            localStorage.setItem('customMeals', JSON.stringify(customMeals));
+            render();
+        }
+
+        function addMeal(amount) {
+            let history = JSON.parse(localStorage.getItem('calHistory')) || {};
+            history[todayKey] = (history[todayKey] || 0) + amount;
+            localStorage.setItem('calHistory', JSON.stringify(history));
+            render();
+            if (!mealList.classList.contains('editing')) toggleMenu();
+        }
+
+        function addFromInput() {
+            const input = document.getElementById('input');
+            if (input.value) { addMeal(parseInt(input.value)); input.value = ''; }
+        }
+
         function manualReset() {
-            if(confirm("Reset today's calories?")) {
+            if(confirm("Reset today?")) {
                 let history = JSON.parse(localStorage.getItem('calHistory')) || {};
                 history[todayKey] = 0;
                 localStorage.setItem('calHistory', JSON.stringify(history));
@@ -120,7 +159,6 @@
             }
         }
 
-        // Initialize on load
         render();
     </script>
 </body>
