@@ -8,43 +8,28 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div id="homeScreen" class="container">
+        <h1 style="color: var(--ios-blue); font-size: 2.5rem;">Cals Pro</h1>
+        <button class="btn add-btn" onclick="showPage('caloriePage')">Calorie Counter</button>
+        <button class="btn secondary-btn" onclick="alert('Exercise Tracker coming soon!')">Exercise Tracker</button>
+    </div>
 
-    <div class="menu-icon" onclick="toggleMenu()">☰</div>
+    <div id="caloriePage" style="display: none;">
+        <div class="menu-icon" onclick="toggleMenu()">☰</div>
+        <div class="back-icon" onclick="showPage('homeScreen')">← Back</div>
 
-    <div id="sideMenu" class="side-menu">
-        <h3>Manage Meals</h3>
-        <div class="form-group">
-            <input type="text" id="newMealName" placeholder="Meal Name (e.g. Pizza)">
-            <input type="number" id="newMealCals" placeholder="Calories">
-            <button class="btn add-btn" onclick="saveNewMeal()">Add to Quick List</button>
+        <div class="container">
+            <div class="label">TODAY</div>
+            <div id="total">0</div>
+            <input type="number" id="input" placeholder="0" inputmode="numeric">
+            <button class="btn add-btn" onclick="addFromInput()">Add Calories</button>
+            <button class="btn secondary-btn" onclick="openQuickAdd()">⚡ Quick Add</button>
         </div>
-        
-        <div id="manageMealList"></div>
-
-        <h4>History</h4>
-        <div id="historyList"></div>
-
-        <button onclick="manualReset()" class="reset-link">Clear Today's Data</button>
     </div>
 
-    <div class="container">
-        <div class="label">TODAY</div>
-        <div id="total">0</div>
-        
-        <input type="number" id="input" placeholder="0" inputmode="numeric">
-        <button class="btn add-btn" onclick="addFromInput()">Add Calories</button>
-        
-        <button class="btn secondary-btn" onclick="openQuickAdd()">⚡ Quick Add</button>
-    </div>
-
+    <div id="sideMenu" class="side-menu">...</div>
     <div id="modalOverlay" onclick="closeQuickAdd()"></div>
-    <div id="quickAddModal">
-        <div class="modal-header">
-            <h3 style="margin:0;">Quick Add</h3>
-            <span onclick="closeQuickAdd()" class="done-link">Done</span>
-        </div>
-        <div id="modalMealList"></div>
-    </div>
+    <div id="quickAddModal">...</div>
 
     <script src="script.js"></script>
 </body>
