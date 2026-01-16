@@ -106,5 +106,16 @@ function manualReset() {
     }
 }
 
+function showPage(pageId) {
+    // Hide both pages
+    document.getElementById('homeScreen').style.display = 'none';
+    document.getElementById('caloriePage').style.display = 'none';
+    
+    // Show the selected page
+    document.getElementById(pageId).style.display = (pageId === 'homeScreen') ? 'flex' : 'block';
+    
+    // If opening calorie page, make sure it renders the latest data
+    if(pageId === 'caloriePage') render();
+}
 // Initial Launch
 render();
