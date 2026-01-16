@@ -12,7 +12,9 @@ function openQuickAdd() {
 
 function closeQuickAdd() {
     document.getElementById('quickAddModal').classList.remove('open');
-    setTimeout(() => document.getElementById('modalOverlay').style.display = 'none', 300);
+    setTimeout(() => {
+        document.getElementById('modalOverlay').style.display = 'none';
+    }, 300);
 }
 
 function render() {
@@ -21,7 +23,7 @@ function render() {
     
     document.getElementById('total').innerText = history[todayKey] || 0;
 
-    // Render Modal Pop-up List
+    // Render Pop-up List
     const modalList = document.getElementById('modalMealList');
     modalList.innerHTML = "";
     meals.forEach(m => {
@@ -32,34 +34,42 @@ function render() {
         modalList.appendChild(div);
     });
 
-    // Render Delete List in Sidebar
+    // Render Sidebar Management List
     const manageList = document.getElementById('manageMealList');
-    manageList.innerHTML = "<h4>My Meals</h4>";
+    manageList.innerHTML = "<h4>My Custom List</h4>";
     meals.forEach((m, i) => {
-        manageList.innerHTML += `<div class="list-item" style="font-size:0.8rem;">
-            ${m.name} (${m.cals}) <span class="del-text" onclick="deleteMeal(${i})">Delete</span>
-        </div>`;
+        const div = document.createElement('div');
+        div.className = 'list-item';
+        div.style.fontSize = "0.85rem";
+        div.innerHTML = `${m.name} (${m.cals}) <span class="del-text" onclick="deleteMeal(${i})">Delete</span>`;
+        manageList.appendChild(div);
     });
 
     // Render History
     const histList = document.getElementById('historyList');
     histList.innerHTML = "";
-    Object.keys(history).sort().reverse().forEach(d => {
-        if(d !== todayKey) {
-            histList.innerHTML += `<div class="list-item"><span>${d}</span> <b>${history[d]}</b></div>`;
+    Object.keys(history).sort().reverse().forEach(date => {
+        if (date !== todayKey) {
+            const div = document.createElement('div');
+            div.className = 'list-item';
+            div.innerHTML = `<span>${date}</span> <b>${history[date]}</b>`;
+            histList.appendChild(div);
         }
     });
 }
 
 function saveNewMeal() {
-    const n = document.getElementById('newMealName').value;
-    const c = parseInt(document.getElementById('newMealCals').value);
-    if(n && c) {
+    const nameInput = document.getElementById('newMealName');
+    const calsInput = document.getElementById('newMealCals');
+    const name = nameInput.value;
+    const cals = parseInt(calsInput.value);
+
+    if (name && cals) {
         const meals = JSON.parse(localStorage.getItem('customMeals')) || defaultMeals;
-        meals.push({name: n, cals: c});
+        meals.push({ name, cals });
         localStorage.setItem('customMeals', JSON.stringify(meals));
-        document.getElementById('newMealName').value = '';
-        document.getElementById('newMealCals').value = '';
+        nameInput.value = '';
+        calsInput.value = '';
         render();
     }
 }
@@ -72,26 +82,29 @@ function deleteMeal(index) {
 }
 
 function addMeal(amt) {
-    let h = JSON.parse(localStorage.getItem('calHistory')) || {};
-    h[todayKey] = (h[todayKey] || 0) + amt;
-    localStorage.setItem('calHistory', JSON.stringify(h));
+    let history = JSON.parse(localStorage.getItem('calHistory')) || {};
+    history[todayKey] = (history[todayKey] || 0) + amt;
+    localStorage.setItem('calHistory', JSON.stringify(history));
     render();
 }
 
 function addFromInput() {
-    const i = document.getElementById('input');
-    if(i.value) { addMeal(parseInt(i.value)); i.value = ''; }
+    const input = document.getElementById('input');
+    if (input.value) {
+        addMeal(parseInt(input.value));
+        input.value = '';
+    }
 }
 
 function manualReset() {
-    if(confirm("Reset today?")) {
-        let h = JSON.parse(localStorage.getItem('calHistory')) || {};
-        h[todayKey] = 0;
-        localStorage.setItem('calHistory', JSON.stringify(h));
+    if (confirm("Clear today's calories?")) {
+        let history = JSON.parse(localStorage.getItem('calHistory')) || {};
+        history[todayKey] = 0;
+        localStorage.setItem('calHistory', JSON.stringify(history));
         render();
         toggleMenu();
     }
 }
 
-// Start the app
+// Initial Launch
 render();
